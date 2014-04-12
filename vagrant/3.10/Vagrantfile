@@ -1,0 +1,254 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure("2") do |config|
+  # All Vagrant configuration is done here. The most common configuration
+  # options are documented and commented below. For a complete reference,
+  # please see the online documentation at vagrantup.com.
+
+  # Every Vagrant virtual environment requires a box to build off of.
+
+    config.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--memory", "2048"]
+    end
+   config.vm.box = "precise32"
+   config.vm.box_url = "http://files.vagrantup.com/precise32.box"
+   config.vm.network :forwarded_port, guest: 80, host: 5000
+   config.vm.network :forwarded_port, guest: 8080, host: 5080
+   config.vm.provision :chef_solo do |chef|
+        # 
+        # update package manager;  install phppgadmin, too.
+        #
+        chef.add_recipe "apt"
+
+        #
+        # install apache2 and mod_proxy_ajp.  add conf.d/bedework.conf w/ proxy directives
+        #
+        chef.add_recipe "apache2"
+        chef.add_recipe "apache2::mod_proxy_ajp"
+
+        #
+        # install postgresql server
+        #
+        chef.add_recipe "postgresql::server"
+
+        #
+        # install openjdk-7
+        #
+        chef.add_recipe "java"
+
+        #
+        # install subersion 1.7 
+        # 
+        chef.add_recipe "subversion"
+
+        chef.add_recipe "openssl"
+        
+        #
+        # create postgresql "bedework" database and set "bedework" as owner
+        #
+        chef.add_recipe "database::postgresql"
+
+        #
+        # http fetch the quickstart via ark
+        #
+        chef.add_recipe "ark"
+
+        chef.json = {
+            "apt" => {
+                "compile_time" => true
+            },	
+            "apache" => { 
+                "default_site_enabled" => true, 
+                "proxy" => {
+                    "deny_from" => 'none',
+                    "allow_from" => 'all'
+                }
+            },
+            "java" => {
+                "jdk_version" => "7"
+            },
+            "postgresql" => {
+                "password" => {
+                    "postgres" => "xxx"
+                }
+            }	
+        }
+        #chef.cookbooks_path = ["cookbooks", "site_cookbooks"]
+
+        #
+        # finish the set up by running the following Bash script 
+        #
+        $script = <<SCRIPT
+#
+#START
+#
+# fix possible issue with postgresql install.  Only affects and fix only works on some flavors of linux (e.g. Ubuntu 12.04)
+#
+if [ -e /etc/apache2/conf.d/phppgadmin ] ; then
+  mv /etc/apache2/conf.d/phppgadmin /etc/apache2/conf.d/phppgadmin.conf
+  apachectl restart
+fi
+#
+# make sure you have the latest bw command before running it
+#
+qs=/opt/bedework/quickstart-3.10
+jboss=$qs/jboss-5.1.0.GA
+svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
+cd $qs
+#
+#  create blended from default and jboss-postgresql.  Use Postgresql for main database and set the bedework password to "xxx"
+#
+cd $qs/bedework/config/bwbuild
+cp -pr jboss-postgresql vagrant
+cp default/bedework*ds.xml vagrant
+sed 's%<password></password>%<password>xxx</password>%' jboss-postgresql/bedework-ds.xml > vagrant/bedework-ds.xml
+cp jboss-postgresql/cal.properties vagrant
+#
+# update and build as user "vagrant"
+#
+buildArgs="-bwchome $qs/bedework/config/bwbuild -bwc vagrant"
+su vagrant -c "cd $qs; ./bw -updateall; ./bw $buildArgs deploy; ./bw $buildArgs -tzsvr; ./bw $buildArgs deployConf"
+cd /vagrant/data
+#
+# set up start up logic
+#
+cp init.d.bedework /etc/init.d/bedework
+cp runbw.sh $qs
+cd $jboss/bin
+sed 's%.*JBOSS_PID=$!.*%JBOSS_PID=$! ; echo $JBOSS_PID > /var/tmp/bedework.jboss.pid%' $jboss/bin/run.sh > /tmp/run.sh 
+cp /tmp/run.sh $jboss/bin/run.sh
+chmod 755 /etc/init.d/bedework $qs/runbw.sh $jboss/bin/run.sh
+#
+# start bedework
+#
+/etc/init.d/bedework start
+#
+# wait for jmx-console to become available, then reindex and set up the postgresql db
+#
+wget -out /dev/null --retry-connrefused http://localhost:5080/jmx-console
+su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=indexing rebuildIndex"
+su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine.core:service=DbConf HibernateDialect org.hibernate.dialect.PostgreSQLDialect Export True"
+su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine.core:service=DbConf schema"
+su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=dumprestore restoreData"
+#
+# set up any conveniences
+#
+cd ~vagrant
+ln -s $jboss/server/default/log .
+chown vagrant log
+#
+# END
+#
+SCRIPT
+
+        config.vm.provision :shell, :inline => $script
+   end
+
+  # The url from where the 'config.vm.box' box will be fetched if it
+  # doesn't already exist on the user's system.
+  config.vm.box_url = "http://files.vagrantup.com/precise32.box"
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # config.vm.network :forwarded_port, guest: 80, host: 8080
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  # config.vm.network :private_network, ip: "192.168.33.10"
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  # config.vm.network :public_network
+
+  # If true, then any SSH connections made will enable agent forwarding.
+  # Default value: false
+  # config.ssh.forward_agent = true
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  # config.vm.provider :virtualbox do |vb|
+  #   # Don't boot with headless mode
+  #   vb.gui = true
+  #
+  #   # Use VBoxManage to customize the VM. For example to change memory:
+  #   vb.customize ["modifyvm", :id, "--memory", "1024"]
+  # end
+  #
+  # View the documentation for the provider you're using for more
+  # information on available options.
+
+  # Enable provisioning with Puppet stand alone.  Puppet manifests
+  # are contained in a directory path relative to this Vagrantfile.
+  # You will need to create the manifests directory and a manifest in
+  # the file precise32.pp in the manifests_path directory.
+  #
+  # An example Puppet manifest to provision the message of the day:
+  #
+  # # group { "puppet":
+  # #   ensure => "present",
+  # # }
+  # #
+  # # File { owner => 0, group => 0, mode => 0644 }
+  # #
+  # # file { '/etc/motd':
+  # #   content => "Welcome to your Vagrant-built virtual machine!
+  # #               Managed by Puppet.\n"
+  # # }
+  #
+  # config.vm.provision :puppet do |puppet|
+  #   puppet.manifests_path = "manifests"
+  #   puppet.manifest_file  = "site.pp"
+  # end
+
+  # Enable provisioning with chef solo, specifying a cookbooks path, roles
+  # path, and data_bags path (all relative to this Vagrantfile), and adding
+  # some recipes and/or roles.
+  #
+  # config.vm.provision :chef_solo do |chef|
+  #   chef.cookbooks_path = "../my-recipes/cookbooks"
+  #   chef.roles_path = "../my-recipes/roles"
+  #   chef.data_bags_path = "../my-recipes/data_bags"
+  #   chef.add_recipe "mysql"
+  #   chef.add_role "web"
+  #
+  #   # You may also specify custom JSON attributes:
+  #   chef.json = { :mysql_password => "foo" }
+  # end
+
+  # Enable provisioning with chef server, specifying the chef server URL,
+  # and the path to the validation key (relative to this Vagrantfile).
+  #
+  # The Opscode Platform uses HTTPS. Substitute your organization for
+  # ORGNAME in the URL and validation key.
+  #
+  # If you have your own Chef Server, use the appropriate URL, which may be
+  # HTTP instead of HTTPS depending on your configuration. Also change the
+  # validation key to validation.pem.
+  #
+  # config.vm.provision :chef_client do |chef|
+  #   chef.chef_server_url = "https://api.opscode.com/organizations/ORGNAME"
+  #   chef.validation_key_path = "ORGNAME-validator.pem"
+  # end
+  #
+  # If you're using the Opscode platform, your validator client is
+  # ORGNAME-validator, replacing ORGNAME with your organization name.
+  #
+  # If you have your own Chef Server, the default validation client name is
+  # chef-validator, unless you changed the configuration.
+  #
+  #   chef.validation_client_name = "ORGNAME-validator"
+end
