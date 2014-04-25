@@ -1,0 +1,73 @@
+#!/bin/bash -f
+#
+#       /etc/rc.d/init.d/bedework
+#
+# must have chkconfig: and description: line for chkconfig to add 
+# appropriate run level links
+# description: start bedework service
+# chkconfig: 345 99 01
+#
+
+JBPIDFILE=/var/tmp/bedework.jboss.pid
+DSPIDFILE=/var/tmp/bedework.apacheds.pid
+BWUSER=vagrant
+RUNDIR=/opt/bedework/quickstart-3.10
+
+start() {
+        echo "Starting up Bedework:"
+        echo -n "Starting apache-ds.  "
+        if [ -e $DSPIDFILE ]; then
+                echo "Warning.  Found a leftover PID file.  You may end up with two instances of apache-ds."
+        fi
+
+        echo -n "Starting jboss.  "
+        if [ -e $JBPIDFILE ]; then
+		echo "Warning.  Found a leftover PID file.  You may end up with two instances of jboss."
+        fi
+        cd $RUNDIR
+        su $BWUSER -c"./runbw.sh"
+	echo "[Coming up. Takes a while for everything to deploy, tho]"                
+	return
+}
+
+stop() {
+        echo "Shutting down Bedework:"
+        if [ -e $DSPIDFILE ]; then
+                echo -n "Shutting down apache-ds:  "
+                kill -15 `cat $DSPIDFILE`
+                rm $DSPIDFILE
+                echo "[Closing down. Should be quick]"
+        else
+                echo "Apache-ds doesn't appear to be running."
+        fi
+        if [ -e $JBPIDFILE ]; then
+        	echo -n "Shutting down jboss:  "
+                kill -15 `cat $JBPIDFILE`
+		rm $JBPIDFILE
+                echo "[Closing down. Takes a while for everything to halt, tho]"
+        else 
+		        echo "Jboss doesn't appear to be running."
+        fi
+        return
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        echo "Sleeping for 30 seconds to make sure everything is shut down".
+        sleep 30
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|restart}"
+        exit 1
+        ;;
+esac
+exit $?
+

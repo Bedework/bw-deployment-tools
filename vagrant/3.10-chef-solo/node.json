@@ -1,0 +1,30 @@
+{
+    "run_list": [ "apt", 
+            "apache2", 
+            "apache2::mod_proxy_ajp", 
+            "postgresql::server",
+            "java",
+	    "subversion",
+            "openssl",
+            "database::postgresql",
+            "ark"
+    ],
+    "apt": { 
+        "compile_time": true
+    },  
+    "apache": { 
+        "default_site_enabled": true, 
+        "proxy": { 
+             "deny_from": "none",
+             "allow_from": "all"
+        }
+    },
+    "java": {
+        "jdk_version": "7"
+    },
+    "postgresql": {
+        "password": {
+            "postgres": "xxx"
+        }
+    }   
+}
