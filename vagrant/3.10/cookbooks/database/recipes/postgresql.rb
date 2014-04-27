@@ -22,9 +22,8 @@ include_recipe "postgresql::ruby"
 postgresql_connection_info = {
 	:host => "localhost",
         :username => "postgres",
-        :password => "xxx"
+        :password => node['postgresql']['password']['postgres']
 }
-
 
 
 postgresql_database 'bedework' do
@@ -34,7 +33,7 @@ end
 
 postgresql_database_user 'bedework' do
 	connection postgresql_connection_info 
-	password "xxx"
+	password node['postgresql']['password']['bedework'] 
 	action	:create
 end
 

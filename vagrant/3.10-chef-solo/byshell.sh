@@ -47,7 +47,8 @@ mv ${dbconfigFile}.NEW $dbconfigFile
 
 echo "***bootstrap: installing databsource settings"
 dsSrcDir=$qs/bedework/config/datasources/postgresql
-sed 's%<password></password>%<password>xxx</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
+dbasePassword=`grep '"bedework": "' /vagrant/node.json | awk '{print $NF}' | sed 's/"//g'`
+sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
 
 echo "***bootstrap: downloading jdbc for Postgresql"
 cd $jboss/server/default/lib
@@ -61,6 +62,10 @@ if [ ! $pureQuickstart ] ; then
 else
   su vagrant -c "cd $qs; ./bw -quickstart deployConf"
 fi
+
+echo "***bootstrap: setting jmx-console password"
+jmxPassword=`grep "jmx-console_password" /vagrant/node.json | awk '{print $NF}' | sed 's/"//g'` 
+echo "admin:$jmxPassword" > $jboss/server/default/conf/props/jmx-console-users.properties
 
 echo "***bootstrap: installing start-up logic"
 cd /vagrant/data

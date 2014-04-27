@@ -23,8 +23,12 @@
         "jdk_version": "7"
     },
     "postgresql": {
-        "password": {
-            "postgres": "xxx"
-        }
-    }   
+         "password": {
+              "postgres": "abcd",
+              "bedework": "efgh" 
+         }
+    },
+    "bedework": {
+        "jmx-console_password": "1234"
+    }
 }

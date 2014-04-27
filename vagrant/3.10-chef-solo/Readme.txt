@@ -7,8 +7,9 @@ for you!
 Once the machine is spun up, ssh to it and
 
 1) cd /vagrant
-2) sudo chef-solo -c solo.rb   <== install lots of packages, create a db, download bedework, etc.
-3) sudo bash byshell.sh        <== finish the install, bring bedework up over postgresql, etc 
+2) edit node.json to set the database passwords 
+3) sudo chef-solo -c solo.rb   <== install lots of packages, create a db, download bedework, etc.
+4) sudo bash byshell.sh        <== finish the install, bring bedework up over postgresql, etc 
 
 Once finished, you can start and stop JBoss and ApacheDS with /etc/init.d/bedework
 Also, there are a few symlinks in ~vagrant to help you find things more easily
