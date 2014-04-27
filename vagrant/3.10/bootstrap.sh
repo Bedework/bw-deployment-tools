@@ -14,6 +14,12 @@ esac
 qs=/opt/bedework/quickstart-3.10
 jboss=$qs/jboss-5.1.0.GA
 
+# little housekeeping
+if [ -f /vagrant/node.js ] ; then
+  jsonGrepFile=/vagrant/node.js
+else
+  jsonGrepFile=/vagrant/Vagrantfile
+fi
 
 # fix possible issue with postgresql install.  Fix only needed on some flavors of linux 
 # (e.g. Ubuntu 12.04)
@@ -47,7 +53,7 @@ mv ${dbconfigFile}.NEW $dbconfigFile
 
 echo "***bootstrap: installing databsource settings"
 dsSrcDir=$qs/bedework/config/datasources/postgresql
-dbasePassword=`grep '"bedework": "' /vagrant/node.json | awk '{print $NF}' | sed 's/"//g'`
+dbasePassword=`grep '"bedework" => "' $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'`
 sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
 
 echo "***bootstrap: downloading jdbc for Postgresql"
@@ -64,7 +70,7 @@ else
 fi
 
 echo "***bootstrap: setting jmx-console password"
-jmxPassword=`grep "jmx-console_password" /vagrant/node.json | awk '{print $NF}' | sed 's/"//g'` 
+jmxPassword=`grep "jmx-console_password" $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'` 
 echo "admin:$jmxPassword" > $jboss/server/default/conf/props/jmx-console-users.properties
 
 echo "***bootstrap: installing start-up logic"
