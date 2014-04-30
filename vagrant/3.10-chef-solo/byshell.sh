@@ -51,7 +51,7 @@ sed 's/org.hibernate.dialect.HSQLDialect/org.hibernate.dialect.PostgreSQLDialect
 cp $dbconfigFile ${dbconfigFile}.ORI
 mv ${dbconfigFile}.NEW $dbconfigFile
 
-echo "***bootstrap: installing databsource settings"
+echo "***bootstrap: installing datasource settings"
 dsSrcDir=$qs/bedework/config/datasources/postgresql
 dbasePassword=`grep '"bedework": "' $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'`
 sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
