@@ -85,3 +85,6 @@ end
 package 'phppgadmin' do
   action :install 
 end
+package 'xmlstarlet' do
+  action :install
+end
