@@ -7,6 +7,7 @@ export DS_HOME=$QUICKSTART_HOME/apacheds-1.5.3-fixed
 cd $QUICKSTART_HOME
 export LAUNCH_JBOSS_IN_BACKGROUND=1
 ./startjboss > /dev/null 2> logs/jboss.errors &
+./runcache > /dev/null 2> logs/vert.x.errors &
 cd $DS_HOME                                                                         
 $JAVA_HOME/jre/bin/java \
 -Dlog4j.configuration=file:conf/log4j.properties -Dapacheds.log.dir=$DS_HOME/logs \
@@ -35,3 +36,4 @@ $DS_HOME/lib/spring-context-2.0.6.jar:$DS_HOME/lib/spring-core-2.0.6.jar:\
 $DS_HOME/lib/wrapper.jar:$DS_HOME/lib/xbean-spring-3.3.jar org.apache.directory.server.UberjarMain conf/server.xml \
 > ../logs/apacheds.out 2> ../logs/apacheds.errors &
 echo $! > /var/tmp/bedework.apacheds.pid
+
