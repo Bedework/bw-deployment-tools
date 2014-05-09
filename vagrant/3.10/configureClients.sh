@@ -1,5 +1,8 @@
 #! /bin/bash -f
 
+
+configHome=/opt/bedework/quickstart-3.10/bedework/config/bedework
+
 function error()
 {
     echo "$*" >&2
@@ -23,7 +26,7 @@ function askYN {
 }
 
 function setValues {
-   cd /opt/bedework/quickstart-3.10/bedework/config/bedework/client-configs 
+   cd $configHome/client-configs 
    for x in CalAdmin.xml EventSubmit.xml Events.xml Feeder.xml SoEDept.xml UserCal.xml ; do
       echo In $x, setting $1 to $2
       xmlstarlet ed -L -N bedework="http://bedework.org/ns/" -u "//bedework:$1" -v "$2" $x 
@@ -31,7 +34,7 @@ function setValues {
 }
 function getValues {
    defaultValues=""
-   cd /opt/bedework/quickstart-3.10/bedework/config/bedework/client-configs
+   cd $configHome/client-configs
    for x in CalAdmin.xml EventSubmit.xml Events.xml Feeder.xml SoEDept.xml UserCal.xml ; do
        out=`xmlstarlet sel -N bedework="http://bedework.org/ns/" -t -v  "//bedework:$1" $x`
        out="/`basename $out`"
@@ -43,7 +46,7 @@ function getValues {
    done
 }
 function addPrefixesToValue {
-   cd /opt/bedework/quickstart-3.10/bedework/config/bedework/client-configs 
+   cd $configHome/client-configs 
    for x in CalAdmin.xml EventSubmit.xml Events.xml Feeder.xml SoEDept.xml UserCal.xml ; do
      oldValue=`xmlstarlet sel -N bedework="http://bedework.org/ns/" -t -v  "//bedework:$1" $x`
      oldValue="/`basename $oldValue`"
@@ -53,9 +56,8 @@ function addPrefixesToValue {
    done
 }
 
-ampm=""
-brootprefix=""
-arootprefix=""
+argProvided="false"
+deploy="do"
 while [[ "$1" ]]
     do
         case "$1" in
@@ -77,7 +79,7 @@ while [[ "$1" ]]
                 ;;
             esac
             shift 
-            ampm="done"
+            argProvided="true"
             ;;
 
        -brootprefix)
@@ -85,16 +87,19 @@ while [[ "$1" ]]
             if [[ ! "$1" ]]; then error "Missing value"; fi
             addPrefixesToValue browserResourceRoot $1 
             shift
-            brootprefix="done"
+            argProvided="true"
             ;;
        -arootprefix)
             shift
             if [[ ! "$1" ]]; then error "Missing value"; fi
             addPrefixesToValue appRoot $1    
             shift
-            arootprefix="done"
+            argProvided="true"
             ;;
-
+        -dontdeploy)
+           shift
+           deploy="dont"
+           ;;
         -*)
             error "Unrecognized option: $1"
             ;;
@@ -106,22 +111,20 @@ while [[ "$1" ]]
 done
 
 
-if [ "$ampm" = "" ] ; then
+if [ "$argProvided" = "false" ] ; then
   askYN "AM/PM time (instead of 24-hour time)? "
   if [ $? = 1 ] ; then
     setValues hour24 false 
   else
     setValues hour24 true
   fi 
-fi
-if [ "$brootprefix" = "" ] ; then
+
   getValues browserResourceRoot 
   echo -n "BrowserResourceRoot URL prefix: ($defaultValues) "
   read ans
   addPrefixesToValue browserResourceRoot $ans 
   shift
-fi
-if [ "$arootprefix" = "" ] ; then
+
   getValues browserResourceRoot
   echo -n "AppRoot URL prefix: ($defaultValues) "
   read ans
@@ -129,6 +132,8 @@ if [ "$arootprefix" = "" ] ; then
   shift
 fi
 
-echo "Pushing changes."
-cd /opt/bedework/quickstart-3.10
-./bw -quickstart deployConf
+if [ $deploy = "do" ] ; then
+  echo "Pushing changes."
+  cd /opt/bedework/quickstart-3.10
+  ./bw -quickstart deployConf
+fi
