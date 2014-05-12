@@ -4,19 +4,23 @@
 # parse args
 
 putQuickstart=0
+rerun=0
 case $1 in
    -pureQuickstart)
       pureQuickstart=1
       ;; 
+   -rerun)
+      rerun=1
+      ;;
 esac
 
-
 qs=/opt/bedework/quickstart-3.10
+wwwDocRoot=/opt/bedework/wwwDocRoot
 jboss=$qs/jboss-5.1.0.GA
 
 # little housekeeping
-if [ -f /vagrant/node.js ] ; then
-  jsonGrepFile=/vagrant/node.js
+if [ -f /vagrant/node.json ] ; then
+  jsonGrepFile=/vagrant/node.json
 else
   jsonGrepFile=/vagrant/Vagrantfile
 fi
@@ -32,15 +36,20 @@ fi
 if [ $pureQuickstart ] ; then
   echo "***bootstrap: Running in pure Quickstart mode."
 else
-
+  echo "***bootstrap: Copying stylesheets to $wwwDocRoot"
+  mkdir -p $wwwDocRoot/3.10
+  cp -pr $jboss/server/default/deploy/ROOT.war/*rsrc* $wwwDocRoot/3.10
+  chown -R vagrant $wwwDocRoot/3.10 
   # make sure you have the latest bw command before running it
 
-  echo "***bootstrap: Updating bw.sh"
-  svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
+  if [ $rerun = 0 ] ; then
+    echo "***bootstrap: Updating bw.sh"
+    svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
 
-  echo "***bootstrap: updating source and rebuilding"
-  buildArgs="-quickstart"
-  su vagrant -c "cd $qs; ./bw -updateall; ./bw $buildArgs deploy; ./bw $buildArgs -tzsvr"
+    echo "***bootstrap: updating source and rebuilding"
+    buildArgs="-quickstart"
+    su vagrant -c "cd $qs; ./bw -updateall; ./bw $buildArgs deploy; ./bw $buildArgs -tzsvr"
+  fi
 fi
 
 # change default dialect for bedework dbase to Postgresql
@@ -50,22 +59,31 @@ dbconfigFile=$qs/bedework/config/bedework/bwcore/dbconfig.xml
 sed 's/org.hibernate.dialect.HSQLDialect/org.hibernate.dialect.PostgreSQLDialect/' ${dbconfigFile}> ${dbconfigFile}.NEW
 cp $dbconfigFile ${dbconfigFile}.ORI
 mv ${dbconfigFile}.NEW $dbconfigFile
+chown vagrant $dbconfigFile
 
 echo "***bootstrap: installing datasource settings"
 dsSrcDir=$qs/bedework/config/datasources/postgresql
 dbasePassword=`grep '"bedework": "' $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'`
 sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
+chown vagrant $jboss/server/default/bwdeploy/bedework-ds.xml
 
 echo "***bootstrap: downloading jdbc for Postgresql"
 cd $jboss/server/default/lib
-wget http://jdbc.postgresql.org/download/postgresql-9.3-1101.jdbc41.jar
+if [ ! -e postgresql-9.3-1101.jdbc41.jar ] ; then
+  wget http://jdbc.postgresql.org/download/postgresql-9.3-1101.jdbc41.jar
+  chown vagrant postgresql-9.3-1101.jdbc41.jar
+fi
 
-# deployConf
+# edit and deploy configuratoni 
 
-echo "***bootstrap: deploying configuration"
 if [ ! $pureQuickstart ] ; then
-  su vagrant -c "cd $qs; ./bw $buildArgs deployConf"
+  cd /vagrant
+  
+  echo "***bootstrap: setting Approot and bwBrowserRoot"
+  bash ./configureClients.sh -brootprefix /3.10 -arootprefix http://localhost/3.10
+  echo "***bootstrap: deploying configuration"
 else
+  echo "***bootstrap: deploying configuration"
   su vagrant -c "cd $qs; ./bw -quickstart deployConf"
 fi
 
@@ -77,15 +95,14 @@ echo "***bootstrap: installing start-up logic"
 cd /vagrant/data
 cp init.d.bedework /etc/init.d/bedework
 cp runbw.sh $qs
+chown vagrant $qs/runbw.sh
 cd $jboss/bin
 sed 's%.*JBOSS_PID=$!.*%JBOSS_PID=$! ; echo $JBOSS_PID > /var/tmp/bedework.jboss.pid%' $jboss/bin/run.sh > /tmp/run.sh 
 cp /tmp/run.sh $jboss/bin/run.sh
 chmod 755 /etc/init.d/bedework $qs/runbw.sh $jboss/bin/run.sh
 
-
 echo "***bootstrap: starting up JBoss and ApacheDS"
 /etc/init.d/bedework start
-
 
 echo "***bootstrap: waiting for jmx-console to be available"
 wget -out /dev/null --retry-connrefused http://localhost:5080/jmx-console

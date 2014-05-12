@@ -7,6 +7,9 @@
     AllowOverride None
   </Directory>
 
+   RewriteEngine On
+   RewriteRule ^/$ /cal/ [R]
+
   <Directory <%= node['apache']['docroot_dir'] %>/>
     Options Indexes FollowSymLinks MultiViews
     AllowOverride None

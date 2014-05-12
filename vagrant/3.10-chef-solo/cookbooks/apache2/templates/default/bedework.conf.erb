@@ -1,2 +1,10 @@
+Alias /3.10 /opt/bedework/wwwDocRoot/3.10 
+<Directory /opt/bedework/wwwDocRoot/3.10> 
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>
 ProxyPass /phppgadmin !
+ProxyPass /3.10 !
 ProxyPass / ajp://localhost:8009/

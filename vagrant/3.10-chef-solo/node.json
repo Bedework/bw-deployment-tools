@@ -2,6 +2,7 @@
     "run_list": [ "apt", 
             "apache2", 
             "apache2::mod_proxy_ajp", 
+            "apache2::mod_rewrite",
             "postgresql::server",
             "java",
 	    "subversion",
