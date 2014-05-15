@@ -82,9 +82,25 @@ end
 end
 
 #added
-package 'phppgadmin' do
-  action :install 
+
+package 'wget' do
+  action :install
 end
+
+if ["debian","ubuntu"].include? node['platform']
+  package 'phppgadmin' do
+    action :install
+  end
+end
+if ["centos","redhat","scientific","oracle"].include? node['platform']
+  package 'phpPgAdmin' do
+    action :install
+  end
+  package 'php-pgsql' do
+    action :install
+  end
+end
+
 package 'xmlstarlet' do
   action :install
 end
