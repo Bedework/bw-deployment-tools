@@ -75,6 +75,7 @@ echo "admin:$jmxPassword" > $jboss/server/default/conf/props/jmx-console-users.p
 
 echo "***bootstrap: installing start-up logic"
 cd /vagrant/data
+dos2unix *
 cp init.d.bedework /etc/init.d/bedework
 cp runbw.sh $qs
 cd $jboss/bin

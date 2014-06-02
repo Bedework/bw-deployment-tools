@@ -108,3 +108,7 @@ end
 package 'wget' do
   action :install
 end
+
+package 'dos2unix' do
+  action :install
+end
