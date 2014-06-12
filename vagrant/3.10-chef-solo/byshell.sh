@@ -93,13 +93,15 @@ echo "admin:$jmxPassword" > $jboss/server/default/conf/props/jmx-console-users.p
 
 echo "***bootstrap: installing start-up logic"
 cd /vagrant/data
-dos2unix *
-cp init.d.bedework /etc/init.d/bedework
-cp runbw.sh $qs
+
+# Using dos2unix to avoid EOL issues on certain hosts
+
+dos2unix -n  init.d.bedework /etc/init.d/bedework
+dos2unix -n  runbw.sh $qs/runbw.sh
 chown vagrant $qs/runbw.sh
 cd $jboss/bin
 sed 's%.*JBOSS_PID=$!.*%JBOSS_PID=$! ; echo $JBOSS_PID > /var/tmp/bedework.jboss.pid%' $jboss/bin/run.sh > /tmp/run.sh 
-cp /tmp/run.sh $jboss/bin/run.sh
+dos2unix -n /tmp/run.sh $jboss/bin/run.sh
 chmod 755 /etc/init.d/bedework $qs/runbw.sh $jboss/bin/run.sh
 
 echo "***bootstrap: starting up JBoss and ApacheDS"
