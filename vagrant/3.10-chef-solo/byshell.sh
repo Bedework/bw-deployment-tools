@@ -110,10 +110,12 @@ echo "***bootstrap: starting up JBoss and ApacheDS"
 echo "***bootstrap: waiting for jmx-console to be available"
 wget -out /dev/null --retry-connrefused http://localhost:5080/jmx-console
 if [ ! $pureQuickstart ] ; then
-  echo "***bootstrap: setting dumprestore attributes"
+  echo "***bootstrap: setting schema attributes"
   su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine.core:service=DbConf Export True SchemaOutFile $jboss/server/default/data/bedework/dumprestore/schema.txt"
   echo "***bootstrap: exporting schema"
   su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine.core:service=DbConf schema"
+  echo "***bootstrap: setting dumprestore attributes"
+  su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine:service=dumprestore AllowRestore True"
   echo "***bootstrap: restoring data"
   su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=dumprestore restoreData"
 fi
