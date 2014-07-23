@@ -1,8 +1,9 @@
 {
     "run_list": [ "apt", 
-            "apache2", 
+            "apache2",
             "apache2::mod_proxy_ajp", 
             "apache2::mod_rewrite",
+            "apache2",
             "postgresql::server",
             "java",
 	    "subversion",
@@ -31,5 +32,8 @@
     },
     "bedework": {
         "jmx-console_password": "1234"
+    },
+    "build_essential": {
+         "compiletime": true
     }
 }

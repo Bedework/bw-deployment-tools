@@ -39,8 +39,7 @@ else
   svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
 
   echo "***bootstrap: updating source and rebuilding"
-  buildArgs="-quickstart"
-  su vagrant -c "cd $qs; ./bw -updateall; ./bw $buildArgs deploy; ./bw $buildArgs -tzsvr"
+  su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr"
 fi
 
 # change default dialect for bedework dbase to Postgresql
@@ -63,11 +62,7 @@ wget http://jdbc.postgresql.org/download/postgresql-9.3-1101.jdbc41.jar
 # deployConf
 
 echo "***bootstrap: deploying configuration"
-if [ ! $pureQuickstart ] ; then
-  su vagrant -c "cd $qs; ./bw $buildArgs deployConf"
-else
-  su vagrant -c "cd $qs; ./bw -quickstart deployConf"
-fi
+su vagrant -c "cd $qs; ./bw deployConf"
 
 echo "***bootstrap: setting jmx-console password"
 jmxPassword=`grep "jmx-console_password" $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'` 

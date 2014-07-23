@@ -47,8 +47,7 @@ else
     svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
 
     echo "***bootstrap: updating source and rebuilding"
-    buildArgs="-quickstart"
-    su vagrant -c "cd $qs; ./bw -updateall; ./bw $buildArgs deploy; ./bw $buildArgs -tzsvr"
+    su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr"
   fi
 fi
 
@@ -81,11 +80,9 @@ if [ ! $pureQuickstart ] ; then
   
   echo "***bootstrap: setting Approot and bwBrowserRoot"
   bash ./configureClients.sh -brootprefix /3.10 -arootprefix http://localhost/3.10
-  echo "***bootstrap: deploying configuration"
-else
-  echo "***bootstrap: deploying configuration"
-  su vagrant -c "cd $qs; ./bw -quickstart deployConf"
 fi
+echo "***bootstrap: deploying configuration"
+su vagrant -c "cd $qs; ./bw deployConf"
 
 echo "***bootstrap: setting jmx-console password"
 jmxPassword=`grep "jmx-console_password" $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'` 
