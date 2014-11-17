@@ -44,21 +44,22 @@ fi
 
 # change default dialect for bedework dbase to Postgresql
 
-echo "***bootstrap: setting hibernate dialect to Postgresql"
-dbconfigFile=$qs/bedework/config/bedework/bwcore/dbconfig.xml
-sed 's/org.hibernate.dialect.HSQLDialect/org.hibernate.dialect.PostgreSQLDialect/' ${dbconfigFile}> ${dbconfigFile}.NEW
-cp $dbconfigFile ${dbconfigFile}.ORI
-mv ${dbconfigFile}.NEW $dbconfigFile
+if [ ! $pureQuickstart ] ; then
+  echo "***bootstrap: setting hibernate dialect to Postgresql"
+  dbconfigFile=$qs/bedework/config/bedework/bwcore/dbconfig.xml
+  cp $dbconfigFile ${dbconfigFile}.ORI
+  sed 's/org.hibernate.dialect.HSQLDialect/org.hibernate.dialect.PostgreSQLDialect/' ${dbconfigFile}> ${dbconfigFile}.NEW
+  mv ${dbconfigFile}.NEW $dbconfigFile
 
-echo "***bootstrap: installing databsource settings"
-dsSrcDir=$qs/bedework/config/datasources/postgresql
-dbasePassword=`grep '"bedework" => "' $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'`
-sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
+  echo "***bootstrap: installing datasource settings"
+  dsSrcDir=$qs/bedework/config/datasources/postgresql
+  dbasePassword=`grep '"bedework" => "' $jsonGrepFile | awk '{print $NF}' | sed 's/"//g'`
+  sed 's%<password></password>%<password>'$dbasePassword'</password>%' $dsSrcDir/bedework-ds.xml > $jboss/server/default/bwdeploy/bedework-ds.xml
 
-echo "***bootstrap: downloading jdbc for Postgresql"
-cd $jboss/server/default/lib
-wget http://jdbc.postgresql.org/download/postgresql-9.3-1101.jdbc41.jar
-
+  echo "***bootstrap: downloading jdbc for Postgresql"
+  cd $jboss/server/default/lib
+  wget http://jdbc.postgresql.org/download/postgresql-9.3-1101.jdbc41.jar
+fi
 # deployConf
 
 echo "***bootstrap: deploying configuration"
