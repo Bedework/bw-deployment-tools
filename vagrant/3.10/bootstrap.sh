@@ -39,7 +39,7 @@ else
   svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
 
   echo "***bootstrap: updating source and rebuilding"
-  su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr"
+  su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr; ./bw -synch"
 fi
 
 # change default dialect for bedework dbase to Postgresql
@@ -97,10 +97,9 @@ if [ ! $pureQuickstart ] ; then
   su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine:service=dumprestore AllowRestore True"
   echo "***bootstrap: restoring data"
   su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=dumprestore restoreData"
+  echo "***bootstrap: reindexing"
+  su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=indexing rebuildIndex"
 fi
-echo "***bootstrap: reindexing"
-su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=indexing rebuildIndex"
-
 # set up any conveniences
 
 echo "***bootstrap: setting up convenience links, etc."

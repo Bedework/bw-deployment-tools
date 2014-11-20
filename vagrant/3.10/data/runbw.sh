@@ -6,7 +6,7 @@ export DS_HOME=$QUICKSTART_HOME/apacheds-1.5.3-fixed
 
 cd $QUICKSTART_HOME
 export LAUNCH_JBOSS_IN_BACKGROUND=1
-./startjboss > /dev/null 2> logs/jboss.errors &
+./startjboss -debug > /dev/null 2> logs/jboss.errors &
 ./runcache > /dev/null 2> logs/vert.x.errors &
 cd $DS_HOME                                                                         
 $JAVA_HOME/jre/bin/java \
