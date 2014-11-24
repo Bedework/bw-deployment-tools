@@ -3,11 +3,22 @@
 . /etc/profile.d/jdk.sh
 # parse args
 
-putQuickstart=0
+everything="false"
+updateOnly="false"
+putQuickstart="false"
 case $1 in
    -pureQuickstart)
-      pureQuickstart=1
+      pureQuickstart="true"
+      echo "***bootstrap: Simply testing quickstart."
       ;; 
+   -everything)
+      everything="true"
+      echo "***bootstrap: Updating quickstart and running over Postgresql."
+      ;; 
+   -updateOnly)
+      updateOnly="true"
+      echo "***bootstrap: Updating quickstart and running over Hypersonic."
+      ;;
 esac
 
 
@@ -29,22 +40,21 @@ if [ -e /etc/apache2/conf.d/phppgadmin ] ; then
   apachectl restart
 fi
 
-if [ $pureQuickstart ] ; then
+if [ "$pureQuickstart" = "true" ] ; then
   echo "***bootstrap: Running in pure Quickstart mode."
 else
-
   # make sure you have the latest bw command before running it
 
   echo "***bootstrap: Updating bw.sh"
   svn update --non-interactive --trust-server-cert $qs/bedework/build/quickstart/linux/bw.sh
 
   echo "***bootstrap: updating source and rebuilding"
-  su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr; ./bw -synch"
+  su vagrant -c "cd $qs; ./bw -updateall; ./bw deploy; ./bw -tzsvr; ./bw -synch; ./bw -eventreg"
 fi
 
 # change default dialect for bedework dbase to Postgresql
 
-if [ ! $pureQuickstart ] ; then
+if [ "$everything" = "true" ] ; then
   echo "***bootstrap: setting hibernate dialect to Postgresql"
   dbconfigFile=$qs/bedework/config/bedework/bwcore/dbconfig.xml
   cp $dbconfigFile ${dbconfigFile}.ORI
@@ -88,7 +98,9 @@ echo "***bootstrap: starting up JBoss and ApacheDS"
 
 echo "***bootstrap: waiting for jmx-console to be available"
 wget -out /dev/null --retry-connrefused http://localhost:5080/jmx-console
-if [ ! $pureQuickstart ] ; then
+if [ "$everything" = "true" ] ; then
+  #echo "***bootstrap: sleeping for 20 minutes to let the system settle before attempting restore"
+  #sleep 1200
   echo "***bootstrap: setting schema attributes"
   su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine.core:service=DbConf Export True SchemaOutFile $jboss/server/default/data/bedework/dumprestore/schema.txt"
   echo "***bootstrap: exporting schema"
@@ -97,6 +109,8 @@ if [ ! $pureQuickstart ] ; then
   su vagrant -c "$jboss/bin/twiddle.sh setattrs org.bedework.bwengine:service=dumprestore AllowRestore True"
   echo "***bootstrap: restoring data"
   su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=dumprestore restoreData"
+fi
+if [ "$pureQuickstart" = "false" ] ; then
   echo "***bootstrap: reindexing"
   su vagrant -c "$jboss/bin/twiddle.sh invoke org.bedework.bwengine:service=indexing rebuildIndex"
 fi
